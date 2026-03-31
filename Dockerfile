@@ -49,6 +49,7 @@ COPY --from=build /app/package.json ./
 COPY --from=build /app/openclaw.mjs ./
 
 ENV NODE_ENV=production
+ENV PORT=7860
 ENV OPENCLAW_BUNDLED_PLUGINS_DIR=/app/${OPENCLAW_BUNDLED_PLUGIN_DIR}
 
 RUN ln -sf /app/openclaw.mjs /usr/local/bin/openclaw && \
@@ -57,4 +58,4 @@ RUN ln -sf /app/openclaw.mjs /usr/local/bin/openclaw && \
 
 USER node
 
-CMD ["sh", "-c", "node openclaw.mjs gateway --allow-unconfigured --bind lan --port ${PORT:-18789} --health-path /health"]
+CMD ["sh", "-c", "node openclaw.mjs gateway --allow-unconfigured --bind lan --port ${PORT:-7860}"]
