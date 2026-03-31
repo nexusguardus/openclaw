@@ -1,15 +1,11 @@
 # syntax=docker/dockerfile:1.7
 
-ARG OPENCLAW_NODE_BOOKWORM_IMAGE="node:24-bookworm-slim@sha256:e8e2e91b1378f83c5b2dd15f0247f34110e2fe895f6ca7719dbb780f929368eb"
 ARG OPENCLAW_BUNDLED_PLUGIN_DIR=extensions
 
-FROM ${OPENCLAW_NODE_BOOKWORM_IMAGE} AS build
+FROM node:24-alpine AS build
 WORKDIR /app
 
-RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-      curl ca-certificates unzip && \
-    rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache curl unzip bash python3 make g++
 
 RUN curl -fsSL https://bun.sh/install | bash
 ENV PATH="/root/.bun/bin:${PATH}"
@@ -25,27 +21,22 @@ RUN NODE_OPTIONS=--max-old-space-size=1536 pnpm install --frozen-lockfile
 COPY . .
 
 RUN pnpm prune --prod && \
-    find node_modules -name "*.d.ts" -delete && \
-    find node_modules -name "*.map" -delete && \
+    find node_modules -name "*.d.ts" -delete 2>/dev/null || true && \
+    find node_modules -name "*.map" -delete 2>/dev/null || true && \
+    find node_modules -name "*.md" -delete 2>/dev/null || true && \
     find node_modules -name "test" -type d -exec rm -rf {} + 2>/dev/null || true && \
     find node_modules -name "tests" -type d -exec rm -rf {} + 2>/dev/null || true && \
-    find node_modules -name "*.md" -delete 2>/dev/null || true
+    find node_modules -name "__tests__" -type d -exec rm -rf {} + 2>/dev/null || true
 
-FROM ${OPENCLAW_NODE_BOOKWORM_IMAGE} AS runtime
+FROM node:24-alpine AS runtime
 ARG OPENCLAW_BUNDLED_PLUGIN_DIR
 WORKDIR /app
 
-RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-      curl ca-certificates openssl && \
-    rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache curl openssl ca-certificates
 
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/package.json ./
 COPY --from=build /app/openclaw.mjs ./
-COPY --from=build /app/${OPENCLAW_BUNDLED_PLUGIN_DIR} ./${OPENCLAW_BUNDLED_PLUGIN_DIR}
-COPY --from=build /app/skills ./skills
-COPY --from=build /app/docs ./docs
 
 ENV NODE_ENV=production
 ENV OPENCLAW_BUNDLED_PLUGINS_DIR=/app/${OPENCLAW_BUNDLED_PLUGIN_DIR}
