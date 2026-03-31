@@ -57,4 +57,4 @@ RUN ln -sf /app/openclaw.mjs /usr/local/bin/openclaw && \
 
 USER node
 
-CMD ["sh", "-c", "node openclaw.mjs gateway --allow-unconfigured --bind lan --port ${PORT:-18789}"]
+CMD ["sh", "-c", "node openclaw.mjs gateway --allow-unconfigured --bind lan --port ${PORT:-18789} --health-path /health"]
