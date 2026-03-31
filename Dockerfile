@@ -1,10 +1,15 @@
 # syntax=docker/dockerfile:1.7
 
-ARG OPENCLAW_NODE_BOOKWORM_IMAGE="node:24-bookworm@sha256:3a09aa6354567619221ef6c45a5051b671f953f0a1924d1f819ffb236e520e6b"
+ARG OPENCLAW_NODE_BOOKWORM_IMAGE="node:24-bookworm-slim@sha256:e8e2e91b1378f83c5b2dd15f0247f34110e2fe895f6ca7719dbb780f929368eb"
 ARG OPENCLAW_BUNDLED_PLUGIN_DIR=extensions
 
 FROM ${OPENCLAW_NODE_BOOKWORM_IMAGE} AS build
 WORKDIR /app
+
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+      curl ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN curl -fsSL https://bun.sh/install | bash
 ENV PATH="/root/.bun/bin:${PATH}"
@@ -25,7 +30,7 @@ WORKDIR /app
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-      procps hostname curl git lsof openssl && \
+      procps hostname curl git lsof openssl ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /app/node_modules ./node_modules
