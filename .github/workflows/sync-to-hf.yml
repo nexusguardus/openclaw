@@ -9,16 +9,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
 
-      - name: Remove large files
+      - name: Push only needed files to HF
         run: |
-          git filter-branch --force --index-filter \
-            'git rm -r --cached --ignore-unmatch .serena/ apps/shared/ClawdisKit/.build/' \
-            --prune-empty --tag-name-filter cat -- --all
+          mkdir hf-push
+          cp Dockerfile hf-push/
+          cp package.json hf-push/
+          cp pnpm-lock.yaml hf-push/
+          cp pnpm-workspace.yaml hf-push/
+          cp .npmrc hf-push/
+          cp -r patches hf-push/
+          cp -r scripts hf-push/
+          cp -r src hf-push/ 2>/dev/null || true
+          cp -r extensions hf-push/ 2>/dev/null || true
+          cp -r skills hf-push/ 2>/dev/null || true
+          cp openclaw.mjs hf-push/ 2>/dev/null || true
+          mkdir -p hf-push/ui
+          cp ui/package.json hf-push/ui/
 
-      - name: Push to HF
-        run: |
+          cd hf-push
+          git init
+          git config user.email "action@github.com"
+          git config user.name "GitHub Action"
+          git add .
+          git commit -m "Deploy to HF Space"
           git remote add hf https://thepro2026:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/thepro2026/openclaw
           git push hf main --force
