@@ -24,13 +24,20 @@ RUN NODE_OPTIONS=--max-old-space-size=1536 pnpm install --frozen-lockfile
 
 COPY . .
 
+RUN pnpm prune --prod && \
+    find node_modules -name "*.d.ts" -delete && \
+    find node_modules -name "*.map" -delete && \
+    find node_modules -name "test" -type d -exec rm -rf {} + 2>/dev/null || true && \
+    find node_modules -name "tests" -type d -exec rm -rf {} + 2>/dev/null || true && \
+    find node_modules -name "*.md" -delete 2>/dev/null || true
+
 FROM ${OPENCLAW_NODE_BOOKWORM_IMAGE} AS runtime
 ARG OPENCLAW_BUNDLED_PLUGIN_DIR
 WORKDIR /app
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-      procps hostname curl git lsof openssl ca-certificates && \
+      curl ca-certificates openssl && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /app/node_modules ./node_modules
