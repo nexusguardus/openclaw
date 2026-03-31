@@ -11,6 +11,13 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
+
+      - name: Remove large files
+        run: |
+          git filter-branch --force --index-filter \
+            'git rm -r --cached --ignore-unmatch .serena/ apps/shared/ClawdisKit/.build/' \
+            --prune-empty --tag-name-filter cat -- --all
+
       - name: Push to HF
         run: |
           git remote add hf https://thepro2026:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/thepro2026/openclaw
