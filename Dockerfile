@@ -92,7 +92,7 @@ ARG OPENCLAW_DOCKER_APT_UPGRADE
 
 WORKDIR /app
 
-# Install basic utilities
+# Install basic utilities (Railway cache fix)
 RUN --mount=type=cache,id=key-openclaw-bookworm-apt-cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,id=key-openclaw-bookworm-apt-lists,target=/var/lib/apt,sharing=locked \
     apt-get update && \
@@ -124,7 +124,7 @@ RUN ln -sf /app/openclaw.mjs /usr/local/bin/openclaw && chmod 755 /app/openclaw.
 # Security: non-root
 USER node
 
-# Healthcheck (dynamic)
+# Healthcheck (dynamic port)
 HEALTHCHECK --interval=3m --timeout=10s --start-period=15s --retries=3 \
   CMD node -e "fetch('http://0.0.0.0:' + process.env.PORT + '/healthz').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
