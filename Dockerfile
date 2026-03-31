@@ -26,5 +26,38 @@ RUN NODE_OPTIONS=--max-old-space-size=1536 \
 
 COPY . .
 
-RUN pnpm prune --prod && \
-    find node_modul
+RUN CI=true pnpm prune --prod && \
+    find node_modules -name "*.d.ts" -delete 2>/dev/null || true && \
+    find node_modules -name "*.map" -delete 2>/dev/null || true && \
+    find node_modules -name "*.md" -delete 2>/dev/null || true && \
+    find node_modules -name "test" -type d -exec rm -rf {} + 2>/dev/null || true && \
+    find node_modules -name "tests" -type d -exec rm -rf {} + 2>/dev/null || true && \
+    find node_modules -name "__tests__" -type d -exec rm -rf {} + 2>/dev/null || true && \
+    rm -rf node_modules/node-llama-cpp/llama 2>/dev/null || true
+
+FROM node:24-bookworm-slim AS runtime
+ARG OPENCLAW_BUNDLED_PLUGIN_DIR
+WORKDIR /app
+
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+      curl ca-certificates openssl && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/package.json ./
+COPY --from=build /app/openclaw.mjs ./
+
+ENV NODE_ENV=production
+ENV OPENCLAW_BUNDLED_PLUGINS_DIR=/app/${OPENCLAW_BUNDLED_PLUGIN_DIR}
+
+RUN ln -sf /app/openclaw.mjs /usr/local/bin/openclaw && \
+    chmod 755 /app/openclaw.mjs && \
+    chown -R node:node /app
+
+USER node
+
+HEALTHCHECK --interval=3m --timeout=10s --start-period=30s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:18789/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+
+CMD ["sh", "-c", "node openclaw.mjs gateway --allow-unconfigured --bind lan --port $PORT"]
